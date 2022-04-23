@@ -21,10 +21,6 @@ import seaborn as sns
 from sklearnex import patch_sklearn
 patch_sklearn()
 
-#TODO uncomment for debugging
-# os.environ["WANDB_MODE"] = "offline"
-# wandb.login(key="6ce7c21067c5213d01777e0a4527fda5597774a3")
-
 ### Args
 args = heteropfl_utils.args_parser()
 
@@ -158,8 +154,8 @@ if pretrain:
             model = client_models[client_id].to(device)
             classifier = client_classifiers[client_id].to(device)
 
-            train_closs, train_loss, train_acc = heteropfl_utils.train_cl(model=model, classifier=classifier, device=device, 
-                                                                        train_dataloader=train_loader, mu=args.mu, configs=configs, 
+            train_closs, train_loss, train_acc = heteropfl_utils.train_cl(model=model, classifier=classifier, device=device,
+                                                                        train_dataloader=train_loader, mu=args.mu, configs=configs,
                                                                         local_epochs=args.local_epochs)
             print('[ROUND {} (RANK {}) CLIENT {}]'.format('init', mpi_rank, client_id), 'CLoss/train:{:.3f}'.format(train_closs))
             print('[ROUND {} (RANK {}) CLIENT {}]'.format('init', mpi_rank, client_id), 'Loss/train:{:.3f}'.format(train_loss))
@@ -198,8 +194,8 @@ for round_idx in range(1, args.max_rounds + 1):
 
         # initialize model weights with global state dict
         classifier.load_state_dict(round_state_dict)
-        train_closs, train_loss, train_acc = heteropfl_utils.train_cl(model=model, classifier=classifier, device=device, 
-                                                                      train_dataloader=train_loader, mu=args.mu, configs=configs, 
+        train_closs, train_loss, train_acc = heteropfl_utils.train_cl(model=model, classifier=classifier, device=device,
+                                                                      train_dataloader=train_loader, mu=args.mu, configs=configs,
                                                                       local_epochs=args.local_epochs)
         print('[ROUND {} (RANK {}) CLIENT {}]'.format(round_idx, mpi_rank, client_id), 'CLoss/train:{:.3f}'.format(train_closs))
         print('[ROUND {} (RANK {}) CLIENT {}]'.format(round_idx, mpi_rank, client_id), 'Loss/train:{:.3f}'.format(train_loss))
@@ -211,7 +207,7 @@ for round_idx in range(1, args.max_rounds + 1):
 
         for param_tensor in classifier.state_dict():
             sum_state_dict[param_tensor] += classifier.state_dict()[param_tensor].clone() * num_virtual_data
-        
+
         client_models[client_id] = model
         client_classifiers[client_id] = classifier
 
@@ -222,7 +218,7 @@ for round_idx in range(1, args.max_rounds + 1):
         param_buf = comm.allreduce(sum_state_dict[param_tensor], op=MPI.SUM)
         num_data = comm.allreduce(num_local_data, op=MPI.SUM)
         global_state_dict[param_tensor] = param_buf / num_data
-    
+
     ############ evaluate round result
     # average client test accuracy
     round_test_acc = 0
@@ -264,7 +260,7 @@ for round_idx in range(1, args.max_rounds + 1):
             best_val_acc = round_test_acc
             best_val_loss = round_test_loss
             best_round = True
-        
+
         wandb.log({'best_global/loss': best_val_loss, 'best_global/acc': best_val_acc}, step=round_idx)
 
         print('[ROUND {}] Global validation accuracy:{:.4f}, loss:{:.4f} (BEST {:.4f}, {:.4f})'.format(round_idx, round_test_acc, round_test_loss, best_val_acc, best_val_loss))
@@ -282,7 +278,7 @@ for round_idx in range(1, args.max_rounds + 1):
         for client_id in virtual_nodes:
             torch.save(client_models[client_id], os.path.join(output_path, f'best/model_client{client_id}.pt'))
             torch.save(client_classifiers[client_id], os.path.join(output_path, f'best/classifier_client{client_id}.pt'))
-            print(f'RANK {mpi_rank} saved model {client_id}') 
+            print(f'RANK {mpi_rank} saved model {client_id}')
         best_round = False
 
     if args.tsne and mpi_rank == 0:
@@ -325,7 +321,7 @@ for round_idx in range(1, args.max_rounds + 1):
         print('[ROUND {} (RANK {}) CLIENT {}]'.format(round_idx, mpi_rank, client_id), 'Loss/post_val:{:.3f}'.format(val_loss))
         print('[ROUND {} (RANK {}) CLIENT {}]'.format(round_idx, mpi_rank, client_id), 'Accuracy/post_val:{:.3f}'.format(val_acc))
 
-    round_test_acc = comm.allreduce(round_test_acc, op=MPI.SUM) / n_parties 
+    round_test_acc = comm.allreduce(round_test_acc, op=MPI.SUM) / n_parties
     round_test_loss = comm.allreduce(round_test_loss, op=MPI.SUM) / n_parties
 
     if mpi_rank == 0 :

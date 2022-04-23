@@ -11,10 +11,6 @@ import wandb
 from tqdm import tqdm
 from utils import EarlyStopping
 
-# TODO uncomment for debugging
-# os.environ["WANDB_MODE"] = "dryrun"
-wandb.login(key="6ce7c21067c5213d01777e0a4527fda5597774a3")
-
 #　Iterate over data classes
 class data(torch.utils.data.Dataset):
     def __init__(self,X, y):

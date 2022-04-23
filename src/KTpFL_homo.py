@@ -12,9 +12,6 @@ from tqdm import tqdm
 from utils import EarlyStopping
 import misc_ktpfl
 
-# TODO uncomment for debugging
-# wandb.login(key="6ce7c21067c5213d01777e0a4527fda5597774a3")
-
 def move_state_dict(source, device):
     for param_tensor in source:
         source[param_tensor] = source[param_tensor].to(device)
@@ -82,13 +79,13 @@ class KT_pFL():
         self.penalty_ratio = configs['penalty_ratio']
 
         # self.init()
-    
+
     def init(self, init_epochs=1):
-        """ initialize client models 
+        """ initialize client models
 
         Args:
             init_epochs (int): number of epochs to init models (default: 1)
-        """        
+        """
         #TODO init + kcm update
         print('=====Initialize client models=====')
         for client_id in range(self.n_parties):
@@ -100,7 +97,7 @@ class KT_pFL():
             model = self.parties[client_id].to(self.device)
             optimizer = torch.optim.SGD(model.parameters(), lr=self.configs['learning_rate'])
             criterion = nn.CrossEntropyLoss()
-            
+
             train_loss, train_acc = misc_ktpfl.train_one_model(model=model, max_epochs=init_epochs, device=self.device, train_dataloader=train_loader, optimizer=optimizer, criterion=criterion, client_id=client_id)
             test_loss, test_acc = misc_ktpfl.evaluate_one_model(model=model, loader=test_loader, criterion=criterion, device=self.device)
 
@@ -122,7 +119,7 @@ class KT_pFL():
         early_stopping = EarlyStopping(patience=100, verbose=True)
 
         n_parties_round = int(self.n_parties * client_sampling_rate)
-        
+
         for round_idx in range(max_rounds):
             global_parties = copy.deepcopy(self.parties)
             sampled_clients = np.random.choice(np.arange(self.n_parties), n_parties_round, replace=False)
@@ -169,7 +166,7 @@ class KT_pFL():
             # distill_models = self.parameterized_knowledge_transfer(global_parties)
             for client_id in sampled_clients:
                 distill_model = self.parameterized_knowledge_transfer(global_parties, client_id)
-                optimizer = torch.optim.SGD(model.parameters(), lr=self.configs['learning_rate']) 
+                optimizer = torch.optim.SGD(model.parameters(), lr=self.configs['learning_rate'])
                 criterion = nn.MSELoss()
 
                 dist_loss = 0
@@ -183,7 +180,7 @@ class KT_pFL():
                     for name, param in model.named_parameters():
                         distill_param = distill_model[name]
                         distill_loss += criterion(param, distill_param)
-                    
+
 
                     distill_loss.backward(retain_graph=True)
                     optimizer.step()
@@ -267,7 +264,7 @@ class KT_pFL():
         # update raw_logits
         # for self_idx in range(self.n_parties): # Calculate the weighted average of its teacher's logits for each model
         weight_tmp = torch.zeros(self.n_parties) # weight to current client
-        for teacher_idx in range(self.n_parties): 
+        for teacher_idx in range(self.n_parties):
             # For a model, calculate the weight after its softmax (why???)
             weight_tmp[teacher_idx] = self.kcm[self_idx][teacher_idx]
         # weight_local = nn.functional.softmax(weight_tmp*5.0)
@@ -280,11 +277,11 @@ class KT_pFL():
             _add_state_dict(distil_model, teacher_state_dict)
             with torch.no_grad():
                 weight[self_idx][teacher_idx] = weight_local[idx_count]
-            idx_count += 1             
+            idx_count += 1
         # return distil_models
         return distil_model
 
-        
+
     def update_coefficients(self, global_parties, penalty_ratio):
         weight_mean = torch.ones(self.n_parties, self.n_parties, requires_grad=True)
         weight_mean = weight_mean.float()/(self.n_parties)
@@ -295,23 +292,23 @@ class KT_pFL():
         weight = self.kcm
         for self_idx in range(self.n_parties): #Calculate the weighted average of its teacher's logits for each model
             teacher_weights_local = zero_state_dict_like(teacher_weights[self_idx].state_dict())
-            for teacher_idx in range(self.n_parties): 
+            for teacher_idx in range(self.n_parties):
                 teacher_state_dict = cmult_state_dict(weight[self_idx][teacher_idx], teacher_weights[teacher_idx].state_dict())
                 _add_state_dict(teacher_weights_local, teacher_state_dict)
                 del teacher_state_dict
-                # teacher_weight = torch.add(teacher_logits_local, weight[self_idx][teacher_idx] * torch.from_numpy(raw_logits[teacher_idx])) 
+                # teacher_weight = torch.add(teacher_logits_local, weight[self_idx][teacher_idx] * torch.from_numpy(raw_logits[teacher_idx]))
                 # A pixel in tensor, intrinsic scalar * teacher's complete logits
-                
+
             loss_input = model_weights[self_idx]
 
             loss = 0
             for name, input_param in loss_input.named_parameters():
                 loss += loss_fn(input_param, teacher_weights_local[name])
-            
+
             loss_penalty = loss_fn(weight[self_idx], weight_mean[self_idx])
             loss += loss_penalty * penalty_ratio
 
-            weight.retain_grad() 
+            weight.retain_grad()
             loss.backward(retain_graph=True)
 
             with torch.no_grad():
@@ -352,7 +349,7 @@ def main(args):
     y_train = np.array(train_dataset.targets)
     net_index_map = utils.partition_data(option=args.data_partition, num_labels=num_classes, y_train=y_train, n_parties=args.n_parties)
     y_test = np.array(test_dataset.targets)
-    
+
     # get client test
     test_indices_k = []
     for k in range(num_classes):
@@ -389,7 +386,7 @@ def main(args):
         for k, p in enumerate(label_dist):
             sampled_idx_k = np.random.choice(test_indices_k[k], int(test_size * p))
             sampled_test_indices.extend(sampled_idx_k)
-        
+
         client_test_dataset = torch.utils.data.Subset(test_dataset, sampled_test_indices)
         client_test_datasets.append(client_test_dataset)
     print('DONE creating client models and datasets')
@@ -411,7 +408,7 @@ def main(args):
         configs['learning_rate'] = 0.01
         configs['distill_lr'] = 0.01
         configs['penalty_ratio'] = 0.7
-    
+
     '''federated distillation learning'''
     kt_pfl = KT_pFL(client_models,
                     public_dataset=_,
