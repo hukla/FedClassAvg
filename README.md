@@ -8,12 +8,19 @@ torch==1.9.1
 
 ## Usage example
 ```
+# Training CIFAR-10 with heterogeneous models with Dir(0.5) non-IID data distribution
 mpirun -hosts [hosts] python src/fedclassavg.py \
---models [resnet,shufflenet,googlenet,alexnet] \
---data [data] \
---mu [mu] \
---data_partition [noniid-labeldir|noniid-twoclass] \
---virtual_per_node [number of virtual nodes] \
---c [client sampling rate] \
---output_path [path to output]
+--models resnet,shufflenet,googlenet,alexnet \
+--data cifar10 \
+--mu 0.1 \
+--data_partition noniid-labeldir \
+--c 1 \
+--output_path [path to output] \
+--seed 2022
+| tee [path to logfile] # save output logs for evaluation
+
+# evaluate
+python src/evaluate.py \
+--log_path [path to logfile] \
+--eval_round [round to evaluate]
 ```

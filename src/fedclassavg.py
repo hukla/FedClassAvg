@@ -318,7 +318,6 @@ for round_idx in range(1, args.max_rounds + 1):
     if args.tsne and mpi_rank == 0:
         # plot t-SNE
         test_dl = DataLoader(test_dataset, 1024, True)
-        # preds, label_arr, client_label, performance = utils.generate_tsne_features_cl(client_models, client_classifiers, test_dl, device)
         preds, label_arr, client_label, performance = utils.generate_tsne_features_cl(
             client_models[:len(virtual_nodes)], client_classifiers, test_dl, device)
         tsne = TSNE(n_components=2, init='pca', learning_rate='auto')
@@ -336,38 +335,6 @@ for round_idx in range(1, args.max_rounds + 1):
         print(f'[ROUND {round_idx}] t-SNE plotted')
 
     early_stopping(round_test_loss, model)
-
-    # post average accuracy; sync client fc weights
-    round_test_acc = 0
-    round_test_loss = 0
-
-    for active_idx, active in enumerate(virtual_nodes):
-        # client id of virutal client
-        client_id = active
-
-        model = client_models[client_id].to(device)
-        classifier = client_classifiers[client_id].to(device)
-
-        classifier.load_state_dict(global_state_dict)
-
-        val_loss, val_acc = heteropfl_utils.evaluate_cl(
-            model, classifier, test_dataloader, device)
-        round_test_loss += val_loss
-        round_test_acc += val_acc
-
-        print('[ROUND {} (RANK {}) CLIENT {}]'.format(
-            round_idx, mpi_rank, client_id), 'Loss/post_val:{:.3f}'.format(val_loss))
-        print('[ROUND {} (RANK {}) CLIENT {}]'.format(
-            round_idx, mpi_rank, client_id), 'Accuracy/post_val:{:.3f}'.format(val_acc))
-
-    round_test_acc = comm.allreduce(round_test_acc, op=MPI.SUM) / n_parties
-    round_test_loss = comm.allreduce(round_test_loss, op=MPI.SUM) / n_parties
-
-    if mpi_rank == 0:
-        wandb.log({'global_post/loss': round_test_loss,
-                  'global_post/acc': round_test_acc}, step=round_idx)
-        print(
-            f'[ROUND {round_idx}] Average (POST) test accuracy: {round_test_acc:.4f} (loss: {round_test_loss:.4f})')
 
     if early_stopping.early_stop:
         print("Early stopping")

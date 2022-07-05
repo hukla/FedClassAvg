@@ -20,7 +20,7 @@ def args_parser():
     ### FL-related paprams ###
     parser.add_argument('--c', type=float, default=1,
                         help='Fraction of participating clients at each communication round (default: 0.1)')
-    parser.add_argument('--max_rounds', type=int, default=200)
+    parser.add_argument('--max_rounds', type=int, default=1000)
     parser.add_argument('--local_epochs', type=int, default=1)
     parser.add_argument('--virtual_per_node', type=int, default=2,
                         help='how many virtual nodes to iterate in each mpi process (default: 1)')
@@ -29,8 +29,6 @@ def args_parser():
     # hetero
     parser.add_argument('--models', type=str, default='googlenet')
 
-    # parser.add_argument('--print-weight', type=bool, default=False,
-                        # help='Whether to print weight and gradients (for debug, default: False)')
     parser.add_argument('--epochs', type=int, default=1,
                         help='Client update epochs at every communication round (default: 1)')
     parser.add_argument('--mu', type=float, default=0,
