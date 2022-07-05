@@ -1,7 +1,6 @@
 import copy
 from collections import OrderedDict
 import numpy as np
-from datasets import DTD, TexturedNavon, navon, KTH, FMD, MINC, GTOS, GTOSM
 import torch
 import torch.nn as nn 
 import torchvision
@@ -92,7 +91,6 @@ def partition_data(option='iid', min_require_size=10, num_labels=10, y_train=Non
                 idx_k = np.where(y_train == k)[0]
                 np.random.shuffle(idx_k)
                 proportions = np.random.dirichlet(np.repeat(beta, n_parties))
-                # Balance (???)
                 proportions = np.array([p * (len(idx_j) < num_data / n_parties) for p, idx_j in zip(proportions, idx_batch)])
                 proportions = proportions / proportions.sum()
                 proportions = (np.cumsum(proportions) * len(idx_k)).astype(int)
@@ -147,48 +145,6 @@ def load_dataset(data_split, target_label_idx):
     else:
         dataname = data_split.split(':')[0]
 
-    if dataname.upper() == 'KTH':
-        train_dataset = KTH.KTHDataset(f'data/KTH/labels/train{split}.txt')
-        test_dataset = KTH.KTHDataset(f'data/KTH/labels/test{split}.txt')
-        val_dataset = KTH.KTHDataset(f'data/KTH/labels/val{split}.txt')
-        num_classes = len(train_dataset.classes)
-        print('labels:', train_dataset.classes)
-
-    if dataname.upper() == 'DTD':
-        train_dataset = DTD.DTDDataset(f'data/DTD/labels/train{split}.txt')
-        test_dataset = DTD.DTDDataset(f'data/DTD/labels/test{split}.txt')
-        val_dataset = DTD.DTDDataset(f'data/DTD/labels/val{split}.txt')
-        num_classes = len(train_dataset.classes)
-        print('labels:', train_dataset.classes)
-
-    if dataname.upper() == 'FMD':
-        train_dataset = FMD.FMDDataset(f'data/FMD/labels/train{split}.txt')
-        test_dataset = FMD.FMDDataset(f'data/FMD/labels/test{split}.txt')
-        val_dataset = FMD.FMDDataset(f'data/FMD/labels/val{split}.txt')
-        num_classes = len(train_dataset.classes)
-        print('labels:', train_dataset.classes)
-
-    if dataname.upper() == 'MINC':
-        train_dataset = MINC.MINCDataset(f'data/MINC/labels/train{split}.txt')
-        test_dataset = MINC.MINCDataset(f'data/MINC/labels/test{split}.txt')
-        val_dataset = MINC.MINCDataset(f'data/MINC/labels/val{split}.txt')
-        num_classes = len(train_dataset.classes)
-        print('labels:', train_dataset.classes)
-
-    if dataname.upper() == 'GTOSM':
-        train_dataset = GTOSM.GTOSMDataset('data/GTOSM/images/train')
-        test_dataset = GTOSM.GTOSMDataset('data/GTOSM/images/test')
-        val_dataset = test_dataset
-        num_classes = len(train_dataset.classes)
-        print('labels:', train_dataset.classes)
-
-    if dataname.upper() == 'GTOS':
-        train_dataset = GTOS.GTOSDataset(f'data/GTOS/labels/train{split}.txt')
-        test_dataset = GTOS.GTOSDataset(f'data/GTOS/labels/test{split}.txt')
-        val_dataset = test_dataset
-        num_classes = len(train_dataset.classes)
-        print('labels:', train_dataset.classes)
-
     if dataname == 'cifar10':
         normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406, ],
                                         std=[0.229, 0.224, 0.225])
@@ -210,20 +166,6 @@ def load_dataset(data_split, target_label_idx):
         val_dataset = test_dataset
         num_classes = 10
         train_dataset.configs = {'lr': 0.0001, 'batch_size': 64}
-
-    if dataname == 'navon-dtd':
-        train_dataset = TexturedNavon.TexturedNavonDataset(f'data/navon-dtd/imsize128_shape110/labels/train{split}.txt', target_label_idx=target_label_idx)
-        test_dataset = TexturedNavon.TexturedNavonDataset(f'data/navon-dtd/imsize128_shape110/labels/test{split}.txt', target_label_idx=target_label_idx)
-        val_dataset = TexturedNavon.TexturedNavonDataset(f'data/navon-dtd/imsize128_shape110/labels/val{split}.txt', target_label_idx=target_label_idx)
-        num_classes = len(train_dataset.classes)
-        print('labels:', train_dataset.classes)
-    
-    if dataname == 'navon':
-        train_dataset = navon.NavonDataset(navon.make_file_list('data/navon/imsize128/shape110_texture8/train'), target_class_idx=target_label_idx)
-        test_dataset = navon.NavonDataset(navon.make_file_list('data/navon/imsize128/shape110_texture8/test'), target_class_idx=target_label_idx)
-        val_dataset = navon.NavonDataset(navon.make_file_list('data/navon/imsize128/shape110_texture8/val'), target_class_idx=target_label_idx)
-        num_classes = len(train_dataset.classes)
-        print('labels:', train_dataset.classes)
 
     if dataname == 'emnist':
         trfm = transforms.Compose([
@@ -302,8 +244,6 @@ def define_model(modelname, num_classes, device, dataname):
             model = models.alexnet_mnist(1, num_classes)
         else:
             model = models.alexnet_mnist(3, num_classes)
-        # if 'mnist' in dataname:
-            # model.features[0] = nn.Conv2d(1, 64, 3, 2, 1)
     model = model.to(device)
         
     return model
@@ -370,14 +310,14 @@ def generate_tsne_features(models, test_dl, device='cuda:0'):
         model = copy.deepcopy(models[client_id])
         model.to(device)
         activation = {}
-    # 
+
         def get_activation(name):
             def hook(model, input, output):
                 if output.__class__.__name__ == 'GoogLeNetOutputs':
                     output = output.logits
                 activation[name] = output.detach()
             return hook
-    # 
+
         model.fc.fcin.register_forward_hook(get_activation('fc.fcin'))
         for images, labels in test_dl:
             images = images.to(device)
@@ -411,14 +351,14 @@ def generate_tsne_features_cl(models, classifiers, test_dl, device='cuda:0'):
         model = copy.deepcopy(models[client_id]).to(device)
         classifier = copy.deepcopy(classifiers[client_id]).to(device)
         activation = {}
-    # 
+
         def get_activation(name):
             def hook(model, input, output):
                 if output.__class__.__name__ == 'GoogLeNetOutputs':
                     output = output.logits
                 activation[name] = output.detach()
             return hook
-    # 
+     
         model.fc.fcin.register_forward_hook(get_activation('fc.fcin'))
         for images, labels in test_dl:
             images = images.to(device)

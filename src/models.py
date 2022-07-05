@@ -27,7 +27,6 @@ class alexnet_mnist(nn.Module):
             ('drop1', nn.Dropout(p=0.5)),
             ('fcin', nn.Linear(256 * 3 * 3, 512)),
             ('relu', nn.ReLU()),
-            # ('drop2', nn.Dropout(p=0.5)),
             ('fcout', nn.Linear(512, num_classes)),
         ]))
 

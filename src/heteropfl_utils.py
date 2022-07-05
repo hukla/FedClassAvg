@@ -20,7 +20,7 @@ def args_parser():
     ### FL-related paprams ###
     parser.add_argument('--c', type=float, default=1,
                         help='Fraction of participating clients at each communication round (default: 0.1)')
-    parser.add_argument('--max_rounds', type=int, default=1000)
+    parser.add_argument('--max_rounds', type=int, default=200)
     parser.add_argument('--local_epochs', type=int, default=1)
     parser.add_argument('--virtual_per_node', type=int, default=2,
                         help='how many virtual nodes to iterate in each mpi process (default: 1)')

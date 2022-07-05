@@ -11,9 +11,6 @@ import wandb
 from tqdm import tqdm
 from utils import EarlyStopping
 
-# TODO uncomment for debugging
-# os.environ["WANDB_MODE"] = "dryrun"
-
 #　Iterate over data classes
 class data(torch.utils.data.Dataset):
     def __init__(self,X, y):
@@ -22,7 +19,6 @@ class data(torch.utils.data.Dataset):
     def __getitem__(self, item):
         X = self.X[item]
         if len(X.shape) == 2:
-            # X = np.repeat(X[None],3,axis=0).astype(np.float32)
             X = np.expand_dims(X, axis=0).astype(np.float32)
         else:
             X = np.transpose(X, (2,0,1)).astype(np.float32)
@@ -70,19 +66,16 @@ def load_public_dataset(dataname, datasize=5000):
         ])
         train_dataset = datasets.CIFAR100(
             './data', train=True, download=True, transform=trsfm_train)
-        # test_dataset = datasets.CIFAR100('./data', test=True, download=True, transform=trsfm_test)
 
         public_dataset = generate_partial_data(train_dataset, public_classes, datasize)
 
     elif 'mnist' in dataname:
-        # TODO load mnist; emnist should have 10 classes 굳이?
         # "public_classes": [10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
         public_dataset = datasets.MNIST(root='./data',
                                        train=True,
                                        transform=transforms.ToTensor(),
                                        download=True)
 
-        # test_dataset = datasets.MNIST(root='./data', train=False, transform=transforms.ToTensor(), download=True)
         public_dataset = generate_partial_data(public_dataset, np.arange(10), datasize)
 
     return public_dataset
@@ -102,7 +95,6 @@ def distill_one_model(model, max_epochs, device, train_dataloader, optimizer, cr
             y_hat = model(data)
             if y_hat.__class__.__name__ == 'GoogLeNetOutputs':
                 y_hat = y_hat.logits
-                # y_hat = torch.nn.functional.softmax(y_hat, dim=1) # distillation target is softmax
             y_hat = torch.nn.functional.softmax(y_hat, dim=1) # distillation target is softmax
             loss = criterion(y_hat, target_label)
 
