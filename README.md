@@ -1,5 +1,11 @@
 # FedClassAvg: Local Representation Learning for Personalized Federated Learning on Heterogeneous Neural Networks
 
+## Requirements
+```
+mpi4py==3.0.3
+torch==1.9.1
+```
+
 ## Usage example
 ```
 mpirun -hosts [hosts] python src/fedclassavg.py \
