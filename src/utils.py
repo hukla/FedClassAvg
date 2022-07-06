@@ -9,6 +9,18 @@ import models
 from tqdm import tqdm
 import warnings
 warnings.filterwarnings('ignore')
+# set seed
+import os
+import random
+SEED = 2021
+random.seed(SEED)
+np.random.seed(SEED)
+os.environ['PYTHONHASHSEED'] = str(SEED)
+torch.manual_seed(SEED)
+torch.cuda.manual_seed(SEED)
+torch.cuda.manual_seed_all(SEED)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = True
 
 def move_state_dict(source, device):
     for param_tensor in source:

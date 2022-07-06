@@ -20,6 +20,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearnex import patch_sklearn
 patch_sklearn()
+import random
 
 # Args
 args = heteropfl_utils.args_parser()
@@ -39,8 +40,7 @@ device = torch.device('cuda:{}'.format(args.gpu_id))
 
 if mpi_rank == 0:
     wandb.init(
-        project=f"hetero_fedavg-{args.data}",
-        notes=f"using contrastive loss, models:{args.models}",
+        project=f"FedClassAvg-{args.data}",
         tags=[f'{args.data}', 'CL'],
         config=args,
     )
@@ -49,10 +49,21 @@ if mpi_rank == 0:
 
 # set seed
 SEED = args.seed
-torch.manual_seed(SEED)
+random.seed(SEED)
 np.random.seed(SEED)
+os.environ['PYTHONHASHSEED'] = str(SEED)
+torch.manual_seed(SEED)
 torch.cuda.manual_seed(SEED)
 torch.cuda.manual_seed_all(SEED)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = True
+# dataloader
+def seed_worker(worker_id):
+    worker_seed = SEED
+    np.random.seed(worker_seed)
+    random.seed(worker_seed)
+g = torch.Generator()
+g.manual_seed(0)
 
 models = args.models.split(',')
 models *= mpi_size
@@ -119,9 +130,9 @@ for client_id in range(n_parties):  # models including global
     client_classifiers.append(client_classifier)
 
 val_dataloader = DataLoader(
-    val_dataset, batch_size=configs['batch_size'], shuffle=False, num_workers=4, pin_memory=True)
+    val_dataset, batch_size=configs['batch_size'], shuffle=False, num_workers=4, pin_memory=True, worker_init_fn=seed_worker, generator=g)
 test_dataloader = DataLoader(
-    test_dataset, batch_size=configs['batch_size'], shuffle=False, num_workers=4, pin_memory=True)
+    test_dataset, batch_size=configs['batch_size'], shuffle=False, num_workers=4, pin_memory=True, worker_init_fn=seed_worker, generator=g)
 
 # initial global weight
 # global state dict only stores classifier weights
@@ -159,7 +170,7 @@ if pretrain:
         client_train_dataset = torch.utils.data.Subset(train_dataset, idx_tf)
 
         train_loader = torch.utils.data.DataLoader(
-            client_train_dataset, batch_size=configs['batch_size'], shuffle=True, num_workers=4, drop_last=True)
+            client_train_dataset, batch_size=configs['batch_size'], shuffle=True, num_workers=4, drop_last=True, worker_init_fn=seed_worker, generator=g)
 
         # define model
         model = client_models[client_id].to(device)
@@ -202,7 +213,8 @@ for round_idx in range(1, args.max_rounds + 1):
         idx_tf = net_index_map[client_id]
         client_train_dataset = torch.utils.data.Subset(train_dataset, idx_tf)
         train_loader = torch.utils.data.DataLoader(
-            client_train_dataset, batch_size=configs['batch_size'], shuffle=True, num_workers=4, drop_last=True)
+            client_train_dataset, batch_size=configs['batch_size'], shuffle=True, num_workers=4, drop_last=True,
+            worker_init_fn=seed_worker, generator=g)
 
         # define model
         model = client_models[client_id].to(device)
@@ -257,7 +269,7 @@ for round_idx in range(1, args.max_rounds + 1):
         client_test_dataset = torch.utils.data.Subset(
             test_dataset, local_test_indices)
         client_test_loader = torch.utils.data.DataLoader(
-            client_test_dataset, batch_size=args.batch_size, shuffle=True, num_workers=4, drop_last=True)
+            client_test_dataset, batch_size=args.batch_size, shuffle=True, num_workers=4, drop_last=True, worker_init_fn=seed_worker, generator=g)
 
         val_loss, val_acc = heteropfl_utils.evaluate_cl(
             model, classifier, client_test_loader, device)

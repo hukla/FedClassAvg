@@ -24,7 +24,7 @@ def ktpfl_acc(log_path, eval_round):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--log_path', type=str, default='results/debug/log.txt')
-    parser.add_argument('--eval_round', type=int, default=13)
+    parser.add_argument('--eval_round', type=int, default=516)
     parser.add_argument('--ktpfl', action='store_true')
     args = parser.parse_args()
     
