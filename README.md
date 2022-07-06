@@ -30,4 +30,4 @@ mpirun -hosts hostsfile python src/fedclassavg.py \
 # Calculate average test accuracies among clients
 python src/evaluate.py --log_path path_to_logfile --eval_round round_to_evaluate
 ```
-**NOTE**: The exact numbers in experimental results may slightly vary from run to run in different environments because of inherent randomness and nondeterministic implementations in PyTorch. Relative performance of the different algorithms compared remains the same.
+**NOTE**: The exact numbers in experimental results may slightly vary from run to run in different environments because of inherent randomness and nondeterministic implementations in PyTorch. The relative performance of the different algorithms compared should remain the same.
