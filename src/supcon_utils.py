@@ -1,9 +1,10 @@
+# from https://github.com/HobbitLong/SupContrast.git
 import torch
 import torch.nn as nn
 import torchvision
 from torchvision import transforms, datasets
 from collections import OrderedDict
-import models 
+import models
 # set seed
 import os
 import random
@@ -27,7 +28,7 @@ class TwoCropTransform:
         return [self.transform(x), self.transform(x)]
 
 def load_dataset(data_split, target_label_idx=0):
-    
+
     # construct data loader
     if data_split == 'cifar10':
         mean = (0.4914, 0.4822, 0.4465)
@@ -116,12 +117,12 @@ def define_model(modelname, num_classes, device, dataname, feat_dim=512):
             model = models.alexnet_mnist(3, feat_dim)
 
     model = model.to(device)
-    
+
     classifier = nn.Sequential(OrderedDict([
         ('relu', nn.ReLU()),
         ('fcout', nn.Linear(feat_dim, num_classes))
     ])).to(device)
-        
+
     return model, classifier
 
 def warmup_learning_rate(args, epoch, batch_id, total_batches, optimizer):

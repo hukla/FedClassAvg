@@ -1,3 +1,4 @@
+# from https://github.com/cugzj/KT-pFL.git
 import os
 import copy
 import torch
@@ -104,9 +105,9 @@ def distill_one_model(model, max_epochs, device, train_dataloader, optimizer, cr
             # calculate train accuracy
             epoch_loss += loss.item() * len(labels)
             del data, labels, y_hat, loss, predicted
-            
-        train_loss = epoch_loss / (batch_idx + 1) 
-    
+
+        train_loss = epoch_loss / (batch_idx + 1)
+
     optimizer.zero_grad(set_to_none=True)
 
     return train_loss
@@ -135,7 +136,7 @@ def train_one_model(model, max_epochs, device, train_dataloader, optimizer, crit
             _, predicted = torch.max(y_hat, 1)
             correct += (predicted == labels).sum().item()
             epoch_loss += loss.item() * len(labels)
-            
+
             n_iter += 1
             del data, labels, y_hat, loss, predicted
 
@@ -159,7 +160,7 @@ def evaluate_one_model(model, loader, criterion, device):
     Returns:
         loss (float): evaluation loss
         accuracy (float): evaluation accuracy
-    """    
+    """
     model.eval()
     epoch_loss = 0
     correct = 0
